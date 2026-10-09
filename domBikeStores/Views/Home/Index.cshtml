@@ -1,33 +1,299 @@
-﻿@{
-    ViewBag.Title = "Home Page";
+﻿@model domBikeStores.ViewModels.HomeViewModel
+@{
+    ViewBag.Title = "Home";
 }
 
-<main>
-    <section class="row" aria-labelledby="aspnetTitle">
-        <h1 id="title">ASP.NET</h1>
-        <p class="lead">ASP.NET is a free web framework for building great Web sites and Web applications using HTML, CSS and JavaScript.</p>
-        <p><a href="https://asp.net" class="btn btn-primary btn-md">Learn more &raquo;</a></p>
-    </section>
+<div class="container-fluid mt-4">
+    <h2 class="text-center mb-4">Pedal & Spoke Management Dashboard</h2>
 
-    <div class="row">
-        <section class="col-md-4" aria-labelledby="gettingStartedTitle">
-            <h2 id="gettingStartedTitle">Getting started</h2>
-            <p>
-                ASP.NET MVC gives you a powerful, patterns-based way to build dynamic websites that
-                enables a clean separation of concerns and gives you full control over markup
-                for enjoyable, agile development.
-            </p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301865">Learn more &raquo;</a></p>
-        </section>
-        <section class="col-md-4" aria-labelledby="librariesTitle">
-            <h2 id="librariesTitle">Get more libraries</h2>
-            <p>NuGet is a free Visual Studio extension that makes it easy to add, remove, and update libraries and tools in Visual Studio projects.</p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301866">Learn more &raquo;</a></p>
-        </section>
-        <section class="col-md-4" aria-labelledby="hostingTitle">
-            <h2 id="hostingTitle">Web Hosting</h2>
-            <p>You can easily find a web hosting company that offers the right mix of features and price for your applications.</p>
-            <p><a class="btn btn-outline-dark" href="https://go.microsoft.com/fwlink/?LinkId=301867">Learn more &raquo;</a></p>
-        </section>
+    <div class="row full-height-row">
+        <!-- ===== STAFF SECTION ===== -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Staff</h5>
+                    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createStaffModal">+ Add Staff</button>
+                </div>
+
+                <div class="card-body">
+                    @foreach (var s in Model.StaffList)
+                    {
+                        <div class="border-bottom mb-3 pb-2">
+                            <strong>@s.first_name @s.last_name</strong><br />
+                            <small>ID:</small> @s.staff_id <br />
+                            <small>Store:</small> @(s.stores?.store_name ?? "None") <br />
+                            <small>Last 3 Items Sold:</small>
+                            <ul class="pl-3">
+                                @if (s.orders.Any())
+                                {
+                                    foreach (var item in s.orders
+                                        .SelectMany(o => o.order_items)
+                                        .OrderByDescending(oi => oi.order_id)
+                                        .Take(3))
+                                    {
+                                        <li>@item.products.product_name</li>
+                                    }
+                                }
+                                else
+                                {
+                                    <li>None</li>
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    @if (Model.StaffPage > 1)
+                    {
+                        <a href="@Url.Action("Index", new { staffPage = Model.StaffPage - 1, custPage = Model.CustPage, prodPage = Model.ProdPage })" class="btn btn-secondary btn-sm">← Previous</a>
+                    }
+                    else
+                    {
+                        <span></span>
+                    }
+                    <span>Page @Model.StaffPage</span>
+                    <a href="@Url.Action("Index", new { staffPage = Model.StaffPage + 1, custPage = Model.CustPage, prodPage = Model.ProdPage })" class="btn btn-secondary btn-sm">Next →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== CUSTOMER SECTION ===== -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0">Customers</h5>
+                    <button class="btn btn-primary btn-sm" data-toggle="modal" data-target="#createCustomerModal">+ Add Customer</button>
+                </div>
+
+                <div class="card-body">
+                    @foreach (var c in Model.CustomerList)
+                    {
+                        <div class="border-bottom mb-3 pb-2">
+                            <strong>@c.first_name @c.last_name</strong><br />
+                            <small>ID:</small> @c.customer_id <br />
+                            <small>Served by Staff:</small>
+                            @{
+                                var staffId = c.orders.Select(o => o.staff_id).FirstOrDefault();
+                                var staffMember = Model.StaffList.FirstOrDefault(s => s.staff_id == staffId);
+                            }
+                            @(staffMember != null ? $"{staffMember.first_name} {staffMember.last_name}" : "None") <br />
+                            <small>Last 3 Items Bought:</small>
+                            <ul class="pl-3">
+                                @{
+                                    var boughtItems = c.orders
+                                                       .SelectMany(o => o.order_items)
+                                                       .OrderByDescending(oi => oi.order_id)
+                                                       .Take(3)
+                                                       .ToList();
+                                    if (!boughtItems.Any())
+                                    {
+                                        <li>None</li>
+                                    }
+                                    else
+                                    {
+                                        foreach (var item in boughtItems)
+                                        {
+                                            <li>@item.products.product_name</li>
+                                        }
+                                    }
+                                }
+                            </ul>
+                        </div>
+                    }
+                </div>
+
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    @if (Model.CustPage > 1)
+                    {
+                        <a href="@Url.Action("Index", new { staffPage = Model.StaffPage, custPage = Model.CustPage - 1, prodPage = Model.ProdPage })" class="btn btn-secondary btn-sm">← Previous</a>
+                    }
+                    else
+                    {
+                        <span></span>
+                    }
+                    <span>Page @Model.CustPage</span>
+                    <a href="@Url.Action("Index", new { staffPage = Model.StaffPage, custPage = Model.CustPage + 1, prodPage = Model.ProdPage })" class="btn btn-secondary btn-sm">Next →</a>
+                </div>
+            </div>
+        </div>
+
+        <!-- ===== PRODUCT SECTION ===== -->
+        <div class="col-md-4">
+            <div class="card shadow-sm mb-4">
+                <div class="card-header">
+                    <h5 class="mb-2">Products</h5>
+                    @using (Html.BeginForm("Index", "Home", FormMethod.Get))
+                    {
+                        <div class="form-inline">
+                            <select name="brandFilter" class="form-control form-control-sm mr-2">
+                                <option value="">All Brands</option>
+                                @foreach (var b in Model.BrandList)
+                                {
+                                    <option value="@b.brand_name" @(b.brand_name == Model.SelectedBrand ? "selected" : "")>@b.brand_name</option>
+                                }
+                            </select>
+                            <select name="categoryFilter" class="form-control form-control-sm mr-2">
+                                <option value="">All Categories</option>
+                                @foreach (var c in Model.CategoryList)
+                                {
+                                    <option value="@c.category_name" @(c.category_name == Model.SelectedCategory ? "selected" : "")>@c.category_name</option>
+                                }
+                            </select>
+                            <button type="submit" class="btn btn-primary btn-sm">Filter</button>
+                        </div>
+                    }
+                </div>
+
+                <div class="card-body">
+                    @foreach (var p in Model.ProductList)
+                    {
+                        var imageNumber = ((p.product_id - 1) % 18) + 1;
+
+                        <div class="border-bottom mb-3 pb-2 d-flex align-items-center">
+                            <img src="~/Content/Images/@(imageNumber).jpeg"
+                                 alt="@p.product_name"
+                                 class="img-thumbnail mr-2"
+                                 style="width:75px; height:75px;" />
+                            <div>
+                                <strong>@p.product_name</strong><br />
+                                <small>ID:</small> @p.product_id <br />
+                                <small>Brand:</small> @p.brands.brand_name <br />
+                                <small>Price:</small> @String.Format("{0:C}", p.list_price)
+                            </div>
+                        </div>
+                    }
+                </div>
+
+                <div class="card-footer d-flex justify-content-between align-items-center">
+                    @if (Model.ProdPage > 1)
+                    {
+                        <a href="@Url.Action("Index", new { staffPage = Model.StaffPage, custPage = Model.CustPage, prodPage = Model.ProdPage - 1 })" class="btn btn-secondary btn-sm">← Previous</a>
+                    }
+                    else
+                    {
+                        <span></span>
+                    }
+                    <span>Page @Model.ProdPage</span>
+                    <a href="@Url.Action("Index", new { staffPage = Model.StaffPage, custPage = Model.CustPage, prodPage = Model.ProdPage + 1 })" class="btn btn-secondary btn-sm">Next →</a>
+                </div>
+            </div>
+        </div>
     </div>
-</main>
+</div>
+
+<!-- ===== STAFF CREATE MODAL ===== -->
+<div class="modal fade" id="createStaffModal" tabindex="-1" role="dialog" aria-labelledby="createStaffModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            @using (Html.BeginForm("CreateStaff", "Home", FormMethod.Post, new { @class = "needs-validation", novalidate = "novalidate" }))
+            {
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Staff</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input name="first_name" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input name="last_name" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input name="email" type="email" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input name="phone" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Store</label>
+                        <select name="store_id" class="form-control" required>
+                            @foreach (var store in Model.BrandList)
+                            {
+                                <option value="@store.brand_id">@store.brand_name</option>
+                            }
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Manager (optional)</label>
+                        <select name="manager_id" class="form-control">
+                            <option value="">-- None --</option>
+                            @foreach (var m in Model.StaffList)
+                            {
+                                <option value="@m.staff_id">@m.first_name @m.last_name</option>
+                            }
+                        </select>
+                    </div>
+                    <input type="hidden" name="active" value="1" />
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
+
+<!-- ===== CUSTOMER CREATE MODAL ===== -->
+<div class="modal fade" id="createCustomerModal" tabindex="-1" role="dialog" aria-labelledby="createCustomerModalLabel" aria-hidden="true">
+    <div class="modal-dialog" role="document">
+        <div class="modal-content">
+            @using (Html.BeginForm("CreateCustomer", "Home", FormMethod.Post))
+            {
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title">Add New Customer</h5>
+                    <button type="button" class="close" data-dismiss="modal">&times;</button>
+                </div>
+
+                <div class="modal-body">
+                    <div class="form-group">
+                        <label>First Name</label>
+                        <input name="first_name" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Last Name</label>
+                        <input name="last_name" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input name="email" type="email" class="form-control" required />
+                    </div>
+                    <div class="form-group">
+                        <label>Phone</label>
+                        <input name="phone" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>Street</label>
+                        <input name="street" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>City</label>
+                        <input name="city" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>State</label>
+                        <input name="state" class="form-control" />
+                    </div>
+                    <div class="form-group">
+                        <label>ZIP Code</label>
+                        <input name="zip_code" class="form-control" maxlength="5" />
+                    </div>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-success">Save</button>
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancel</button>
+                </div>
+            }
+        </div>
+    </div>
+</div>
